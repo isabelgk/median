@@ -1,0 +1,17 @@
+[package]
+name = "galactic"
+version = "0.1.0"
+authors = ["Isabel Kaspriskie <isabel@cycling74.com>"]
+edition = "2018"
+
+[lib]
+name = "galactic_tilde"
+crate-type = ["cdylib"]
+
+[dependencies]
+median = { path = "../../" }
+parking_lot = "0.11.0"
+
+[profile.release]
+lto = true
+panic = "abort"
