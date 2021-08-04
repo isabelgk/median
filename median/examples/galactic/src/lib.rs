@@ -3,9 +3,7 @@ use median::{
     builder::MSPWrappedBuilder,
     class::Class,
     num::Float64,
-    wrapper::{
-        attr_get_tramp, attr_set_tramp, MSPObjWrapped, MSPObjWrapper,
-    },
+    wrapper::{attr_get_tramp, attr_set_tramp, MSPObjWrapped, MSPObjWrapper},
 };
 
 struct GalacticInner {
@@ -635,13 +633,13 @@ median::external! {
                 }
                 // end feedback
 
-                if g.iir_bl < eps {
+                if g.iir_bl.abs() < eps {
                     g.iir_bl = 0.0;
                 }
                 g.iir_bl = g.iir_bl * (1.0 - lowpass) + input_sample_l * lowpass;
                 input_sample_l = g.iir_bl;
 
-                if g.iir_br < eps {
+                if g.iir_br.abs() < eps {
                     g.iir_br = 0.0;
                 }
                 g.iir_br = g.iir_br * (1.0 - lowpass) + input_sample_r * lowpass;
