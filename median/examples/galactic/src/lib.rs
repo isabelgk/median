@@ -3,9 +3,7 @@ use median::{
     builder::MSPWrappedBuilder,
     class::Class,
     num::Float64,
-    wrapper::{
-        attr_get_tramp, attr_set_tramp, MSPObjWrapped, MSPObjWrapper,
-    },
+    wrapper::{attr_get_tramp, attr_set_tramp, MSPObjWrapped, MSPObjWrapper},
 };
 
 struct GalacticInner {
@@ -247,7 +245,7 @@ median::external! {
             let lowpass = (1.00001 - (1.0 - self.b.get())).powi(2) / overallscale.sqrt();
             let drift = self.c.get().powi(3) * 0.001;
             let size = (self.d.get() * 1.77) + 0.1;
-            let wet = 0.9999;
+            let wet = 1.0 - (1.0 - self.e.get()).powi(3);
 
             g.delay_i = (3407.0 * size) as i64;
             g.delay_j = (1823.0 * size) as i64;
@@ -264,10 +262,11 @@ median::external! {
             g.delay_m = 256;
             let mut counter = 0;
             while counter < _nframes {
+                //NOTE was 'long double'
                 let mut input_sample_l = _ins[0][counter];
                 let mut input_sample_r = _ins[1][counter];
 
-                let eps = 1.18f64.powi(-43);
+                let eps = 1.18e-43f64;
                 if input_sample_l.abs() < eps {
                     input_sample_l = g.fpd_l as f64 * eps;
                 }
@@ -275,6 +274,7 @@ median::external! {
                     input_sample_r = g.fpd_r as f64 * eps;
                 }
 
+                //NOTE was 'long double'
                 let dry_sample_l = input_sample_l;
                 let dry_sample_r = input_sample_r;
 
@@ -311,7 +311,7 @@ median::external! {
                 working_ml -= x as usize;
                 let a = g.a_ml[working_ml];
                 // b = 1 - offset_ml - floor(offset_ml)
-                let b = 1.0 - offset_ml - offset_ml.floor();
+                let b = 1.0 - offset_ml.fract();
                 // c = a_ml[working_ml + 1 - ( (working_ml + 1 > delay_m) ? delay_m + 1 : 0 )]
                 x = 0;
                 if (working_ml + 1) as i64 > g.delay_m {
@@ -334,7 +334,7 @@ median::external! {
                 working_mr -= x as usize;
                 let a = g.a_mr[working_mr];
                 // b = 1 - offset_mr - floor(offset_mr)
-                let b = 1.0 - offset_mr - offset_mr.floor();
+                let b = 1.0 - offset_mr.fract();
                 // c = a_mr[working_mr + 1 - ( (working_mr + 1 > delay_m) ? delay_m + 1 : 0 )]
                 x = 0;
                 if (working_mr + 1) as i64 > g.delay_m {
@@ -346,6 +346,7 @@ median::external! {
                 input_sample_r = a * b + c * d;
                 // Pre-delay + vibrato
 
+                let eps = 1.18e-37f64;
                 if g.iir_al.abs() < eps {
                     g.iir_al = 0.0;
                 }
