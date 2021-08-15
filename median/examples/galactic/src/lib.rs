@@ -249,7 +249,7 @@ median::external! {
                     g.oldfpd = 0.4294967295 + (g.fpd_l as f64 * 0.0000000000618);
                 }
 
-                let i = g.count_m as usize;
+                let i = g.count_m;
                 g.a_ml[i] = input_sample_l * attenuate;
                 g.a_mr[i] = input_sample_r * attenuate;
                 g.count_m += 1;
@@ -276,7 +276,7 @@ median::external! {
                     if (w + 1) > del {
                         x = del + 1;
                     }
-                    let c = arr[w + 1 - x as usize];
+                    let c = arr[w + 1 - x];
                     let d = offset - offset.floor();
 
                     a * b + c * d
