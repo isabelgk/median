@@ -567,8 +567,8 @@ median::external! {
                 }
                 // end feedback
 
-                input_sample_l = filter(&mut g.iir_al, 1.18e-37f64, input_sample_l);
-                input_sample_r = filter(&mut g.iir_ar, 1.18e-37f64, input_sample_r);
+                input_sample_l = filter(&mut g.iir_bl, 1.18e-37f64, input_sample_l);
+                input_sample_r = filter(&mut g.iir_br, 1.18e-37f64, input_sample_r);
                 // end filter
 
                 // dry/wet
