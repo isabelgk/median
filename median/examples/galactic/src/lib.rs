@@ -24,9 +24,6 @@ struct GalacticInner {
 
     a_ml: [f64; 3111],
     a_mr: [f64; 3111],
-    _vib_ml: f64,
-    _vib_mr: f64,
-    _depth_m: f64,
     oldfpd: f64,
 
     feedback_al: f64,
@@ -35,7 +32,6 @@ struct GalacticInner {
     feedback_dl: f64,
 
     last_ref_l: [f64; 7],
-    _thunder_l: f64,
 
     iir_ar: f64,
     iir_br: f64,
@@ -62,34 +58,20 @@ struct GalacticInner {
     feedback_dr: f64,
 
     last_ref_r: [f64; 7],
-    _thunder_r: f64,
 
     count_a: i64,
-    delay_a: i64,
     count_b: i64,
-    delay_b: i64,
     count_c: i64,
-    delay_c: i64,
     count_d: i64,
-    delay_d: i64,
     count_e: i64,
-    delay_e: i64,
     count_f: i64,
-    delay_f: i64,
     count_g: i64,
-    delay_g: i64,
     count_h: i64,
-    delay_h: i64,
     count_i: i64,
-    delay_i: i64,
     count_j: i64,
-    delay_j: i64,
     count_k: i64,
-    delay_k: i64,
     count_l: i64,
-    delay_l: i64,
     count_m: i64,
-    delay_m: i64,
     cycle: i64, //all these ints are shared across channels, not duplicated
 
     vib_m: f64,
@@ -115,16 +97,12 @@ impl Default for GalacticInner {
             a_hl: [0f64; 3200],
             a_ml: [0f64; 3111],
             a_mr: [0f64; 3111],
-            _vib_ml: 0f64,
-            _vib_mr: 0f64,
-            _depth_m: 0f64,
             oldfpd: 429496.7295f64,
             feedback_al: 0f64,
             feedback_bl: 0f64,
             feedback_cl: 0f64,
             feedback_dl: 0f64,
             last_ref_l: [0f64; 7],
-            _thunder_l: 0f64,
             iir_al: 0f64,
             iir_bl: 0f64,
             iir_ar: 0f64,
@@ -146,33 +124,19 @@ impl Default for GalacticInner {
             feedback_cr: 0f64,
             feedback_dr: 0f64,
             last_ref_r: [0f64; 7],
-            _thunder_r: 0f64,
             count_a: 1i64,
-            delay_a: 0i64,
             count_b: 1i64,
-            delay_b: 0i64,
             count_c: 1i64,
-            delay_c: 0i64,
             count_d: 1i64,
-            delay_d: 0i64,
             count_e: 1i64,
-            delay_e: 0i64,
             count_f: 1i64,
-            delay_f: 0i64,
             count_g: 1i64,
-            delay_g: 0i64,
             count_h: 1i64,
-            delay_h: 0i64,
             count_i: 1i64,
-            delay_i: 0i64,
             count_j: 1i64,
-            delay_j: 0i64,
             count_k: 1i64,
-            delay_k: 0i64,
             count_l: 1i64,
-            delay_l: 0i64,
             count_m: 1i64,
-            delay_m: 0i64,
             cycle: 0i64, //all these ints are shared across channels, not duplicated
             vib_m: 3f64,
             fpd_l: 3856986592u32,
@@ -247,19 +211,20 @@ median::external! {
             let size = (self.d.get() * 1.77) + 0.1;
             let wet = 1.0 - (1.0 - self.e.get()).powi(3);
 
-            g.delay_i = (3407.0 * size) as i64;
-            g.delay_j = (1823.0 * size) as i64;
-            g.delay_k = (859.0 * size) as i64;
-            g.delay_l = (331.0 * size) as i64;
-            g.delay_a = (4801.0 * size) as i64;
-            g.delay_b = (2909.0 * size) as i64;
-            g.delay_c = (1153.0 * size) as i64;
-            g.delay_d = (461.0 * size) as i64;
-            g.delay_e = (7607.0 * size) as i64;
-            g.delay_f = (4217.0 * size) as i64;
-            g.delay_g = (2269.0 * size) as i64;
-            g.delay_h = (1597.0 * size) as i64;
-            g.delay_m = 256;
+            let delay_a = (4801.0 * size) as i64;
+            let delay_b = (2909.0 * size) as i64;
+            let delay_c = (1153.0 * size) as i64;
+            let delay_d = (461.0 * size) as i64;
+            let delay_e = (7607.0 * size) as i64;
+            let delay_f = (4217.0 * size) as i64;
+            let delay_g = (2269.0 * size) as i64;
+            let delay_h = (1597.0 * size) as i64;
+            let delay_i = (3407.0 * size) as i64;
+            let delay_j = (1823.0 * size) as i64;
+            let delay_k = (859.0 * size) as i64;
+            let delay_l = (331.0 * size) as i64;
+            let delay_m = 256;
+
             let mut counter = 0;
             while counter < _nframes {
                 //NOTE was 'long double'
@@ -289,61 +254,39 @@ median::external! {
                 g.a_mr[i] = input_sample_r * attenuate;
                 g.count_m += 1;
 
-                if g.count_m < 0 || g.count_m > g.delay_m {
+                if g.count_m < 0 || g.count_m > delay_m {
                     g.count_m = 0;
                 }
 
-                // left
-                let offset_ml = (g.vib_m.sin() + 1.0) * 127.0;
-                let working_ml = g.count_m + offset_ml as i64;
-                let mut working_ml = working_ml as usize;
-                // Calculate interpol_ml in parts
-                // a_ml[working_ml-( (working_ml > delay_m) ? delay_m + 1 : 0 )]
-                //         * ( 1 - (offset_ml - floor(offset_ml)) )
-                //     + a_ml[working_ml + 1 - ( (working_ml + 1 > delay_m) ? delay_m + 1 : 0 )]
-                //         * ( offset_ml - floor(offset_ml) );
-                // call it: a * b + c * d;
-                // a = a_ml[working_ml-( (working_ml > delay_m) ? delay_m + 1 : 0 )]
-                let mut x = 0i64;
-                if working_ml as i64 > g.delay_m {
-                    x = g.delay_m + 1;
-                }
-                working_ml -= x as usize;
-                let a = g.a_ml[working_ml];
-                // b = 1 - offset_ml - floor(offset_ml)
-                let b = 1.0 - offset_ml.fract();
-                // c = a_ml[working_ml + 1 - ( (working_ml + 1 > delay_m) ? delay_m + 1 : 0 )]
-                x = 0;
-                if (working_ml + 1) as i64 > g.delay_m {
-                    x = g.delay_m + 1;
-                }
-                let c = g.a_ml[working_ml + 1 - x as usize];
-                // d = offset_ml - floor(offset_ml)
-                let d = offset_ml - offset_ml.floor();
-                input_sample_l = a * b + c * d;
+                // Compute interpol_m
+                let interpol_m_comp = |offset: f64, w: i64, del: i64, arr: [f64; 3111]| {
+                    let mut w = w as usize;
+                    let mut x = 0i64;
 
-                // Do the same on the right with a shifted offset_mr
+                    if w as i64 > del {
+                        x = del + 1;
+                    }
+                    w -= x as usize;
+
+                    let a = arr[w];
+                    let b = 1.0 - offset.fract();
+                    x = 0;
+
+                    if (w + 1) as i64 > del {
+                        x = del + 1;
+                    }
+                    let c = arr[w + 1 - x as usize];
+                    let d = offset - offset.floor();
+
+                    a * b + c * d
+                };
+
+                let offset_ml = (g.vib_m.sin() + 1.0) * 127.0;
                 let offset_mr = ((g.vib_m + (3.141592653589793238 / 2.0)).sin() + 1.0) * 127.0;
+                let working_ml = g.count_m + offset_ml as i64;
                 let working_mr = g.count_m + offset_mr as i64;
-                let mut working_mr = working_mr as usize;
-                // a = a_ml[working_ml-( (working_ml > delay_m) ? delay_m + 1 : 0 )]
-                let mut x = 0i64;
-                if working_mr as i64 > g.delay_m {
-                    x = g.delay_m + 1;
-                }
-                working_mr -= x as usize;
-                let a = g.a_mr[working_mr];
-                // b = 1 - offset_mr - floor(offset_mr)
-                let b = 1.0 - offset_mr.fract();
-                // c = a_mr[working_mr + 1 - ( (working_mr + 1 > delay_m) ? delay_m + 1 : 0 )]
-                x = 0;
-                if (working_mr + 1) as i64 > g.delay_m {
-                    x = g.delay_m + 1;
-                }
-                let c = g.a_mr[working_mr + 1 - x as usize];
-                // d = offset_mr - floor(offset_mr)
-                let d = offset_mr - offset_mr.floor();
-                input_sample_r = a * b + c * d;
+                input_sample_l = interpol_m_comp(offset_ml, working_ml, delay_m, g.a_ml);
+                input_sample_r = interpol_m_comp(offset_mr, working_mr, delay_m, g.a_mr);
                 // Pre-delay + vibrato
 
                 let eps = 1.18e-37f64;
@@ -380,62 +323,62 @@ median::external! {
                     g.a_lr[i] = input_sample_r + (g.feedback_dl * regen);
 
                     g.count_i += 1;
-                    if g.count_i < 0 || g.count_i > g.delay_i {
+                    if g.count_i < 0 || g.count_i > delay_i {
                         g.count_i = 0;
                     }
                     g.count_j += 1;
-                    if g.count_j < 0 || g.count_j > g.delay_j {
+                    if g.count_j < 0 || g.count_j > delay_j {
                         g.count_j = 0;
                     }
                     g.count_k += 1;
-                    if g.count_k < 0 || g.count_k > g.delay_k {
+                    if g.count_k < 0 || g.count_k > delay_k {
                         g.count_k = 0;
                     }
                     g.count_l += 1;
-                    if g.count_l < 0 || g.count_l > g.delay_l {
+                    if g.count_l < 0 || g.count_l > delay_l {
                         g.count_l = 0;
                     }
 
                     let mut i = g.count_i as usize;
-                    if g.count_i > g.delay_i {
-                        i -= (g.delay_i as usize) + 1;
+                    if g.count_i > delay_i {
+                        i -= (delay_i as usize) + 1;
                     }
                     let out_il = g.a_il[i];
 
                     i = g.count_j as usize;
-                    if g.count_j > g.delay_j {
-                        i -= (g.delay_j as usize) + 1;
+                    if g.count_j > delay_j {
+                        i -= (delay_j as usize) + 1;
                     }
                     let out_jl = g.a_jl[i];
 
                     i = g.count_k as usize;
-                    if g.count_k > g.delay_k {
-                        i -= (g.delay_k as usize) + 1;
+                    if g.count_k > delay_k {
+                        i -= (delay_k as usize) + 1;
                     }
                     let out_kl = g.a_kl[i];
                     i = g.count_l as usize;
-                    if g.count_l > g.delay_l {
-                        i -= (g.delay_l as usize) + 1;
+                    if g.count_l > delay_l {
+                        i -= (delay_l as usize) + 1;
                     }
                     let out_ll = g.a_jl[i];
                     i = g.count_i as usize;
-                    if g.count_i > g.delay_i {
-                        i -= (g.delay_i as usize) + 1;
+                    if g.count_i > delay_i {
+                        i -= (delay_i as usize) + 1;
                     }
                     let out_ir = g.a_ir[i];
                     i = g.count_j as usize;
-                    if g.count_j > g.delay_j {
-                        i -= (g.delay_j as usize) + 1;
+                    if g.count_j > delay_j {
+                        i -= (delay_j as usize) + 1;
                     }
                     let out_jr = g.a_jr[i];
                     i = g.count_k as usize;
-                    if g.count_k > g.delay_k {
-                        i -= (g.delay_k as usize) + 1;
+                    if g.count_k > delay_k {
+                        i -= (delay_k as usize) + 1;
                     }
                     let out_kr = g.a_kr[i];
                     i = g.count_l as usize;
-                    if g.count_l > g.delay_l {
-                        i -= (g.delay_l as usize) + 1;
+                    if g.count_l > delay_l {
+                        i -= (delay_l as usize) + 1;
                     }
                     let out_lr = g.a_lr[i];
                     // first block: now we have four outputs
@@ -453,61 +396,61 @@ median::external! {
                     g.a_dl[x] = out_ll - (out_il + out_jl + out_kl);
                     g.a_dr[x] = out_lr - (out_ir + out_jr + out_kr);
                     g.count_a += 1;
-                    if g.count_a < 0 || g.count_a > g.delay_a {
+                    if g.count_a < 0 || g.count_a > delay_a {
                         g.count_a = 0;
                     }
                     g.count_b += 1;
-                    if g.count_b < 0 || g.count_b > g.delay_b {
+                    if g.count_b < 0 || g.count_b > delay_b {
                         g.count_b = 0;
                     }
                     g.count_c += 1;
-                    if g.count_c < 0 || g.count_c > g.delay_c {
+                    if g.count_c < 0 || g.count_c > delay_c {
                         g.count_c = 0;
                     }
                     g.count_d += 1;
-                    if g.count_d < 0 || g.count_d > g.delay_d {
+                    if g.count_d < 0 || g.count_d > delay_d {
                         g.count_d = 0;
                     }
 
                     let mut i = g.count_a as usize;
-                    if g.count_a > g.delay_a {
-                        i -= (g.delay_a as usize) + 1;
+                    if g.count_a > delay_a {
+                        i -= (delay_a as usize) + 1;
                     }
                     let out_al = g.a_al[i];
                     i = g.count_b as usize;
-                    if g.count_b > g.delay_b {
-                        i -= (g.delay_b as usize) + 1;
+                    if g.count_b > delay_b {
+                        i -= (delay_b as usize) + 1;
                     }
                     let out_bl = g.a_bl[i];
 
                     i = g.count_c as usize;
-                    if g.count_c > g.delay_c {
-                        i -= (g.delay_c as usize) + 1;
+                    if g.count_c > delay_c {
+                        i -= (delay_c as usize) + 1;
                     }
                     let out_cl = g.a_cl[i];
                     i = g.count_d as usize;
-                    if g.count_d > g.delay_d {
-                        i -= (g.delay_d as usize) + 1;
+                    if g.count_d > delay_d {
+                        i -= (delay_d as usize) + 1;
                     }
                     let out_dl = g.a_dl[i];
                     i = g.count_a as usize;
-                    if g.count_a > g.delay_a {
-                        i -= (g.delay_a as usize) + 1;
+                    if g.count_a > delay_a {
+                        i -= (delay_a as usize) + 1;
                     }
                     let out_ar = g.a_ar[i];
                     i = g.count_b as usize;
-                    if g.count_b > g.delay_b {
-                        i -= (g.delay_b as usize) + 1;
+                    if g.count_b > delay_b {
+                        i -= (delay_b as usize) + 1;
                     }
                     let out_br = g.a_br[i];
                     i = g.count_c as usize;
-                    if g.count_c > g.delay_c {
-                        i -= (g.delay_c as usize) + 1;
+                    if g.count_c > delay_c {
+                        i -= (delay_c as usize) + 1;
                     }
                     let out_cr = g.a_cr[i];
                     i = g.count_d as usize;
-                    if g.count_d > g.delay_d {
-                        i -= (g.delay_d as usize) + 1;
+                    if g.count_d > delay_d {
+                        i -= (delay_d as usize) + 1;
                     }
                     let out_dr = g.a_dr[i];
                     // second block: now we have four more outputs
@@ -525,61 +468,61 @@ median::external! {
                     g.a_hl[x] = out_dl - (out_al + out_bl + out_cl);
                     g.a_hr[x] = out_dr - (out_ar + out_br + out_cr);
                     g.count_e += 1;
-                    if g.count_e < 0 || g.count_e > g.delay_e {
+                    if g.count_e < 0 || g.count_e > delay_e {
                         g.count_e = 0;
                     }
                     g.count_f += 1;
-                    if g.count_f < 0 || g.count_f > g.delay_f {
+                    if g.count_f < 0 || g.count_f > delay_f {
                         g.count_f = 0;
                     }
                     g.count_g += 1;
-                    if g.count_g < 0 || g.count_g > g.delay_g {
+                    if g.count_g < 0 || g.count_g > delay_g {
                         g.count_g = 0;
                     }
                     g.count_h += 1;
-                    if g.count_h < 0 || g.count_h > g.delay_h {
+                    if g.count_h < 0 || g.count_h > delay_h {
                         g.count_h = 0;
                     }
 
                     let mut i = g.count_e as usize;
-                    if g.count_e > g.delay_e {
-                        i -= (g.delay_e as usize) + 1;
+                    if g.count_e > delay_e {
+                        i -= (delay_e as usize) + 1;
                     }
                     let out_el = g.a_el[i];
                     i = g.count_f as usize;
-                    if g.count_f > g.delay_f {
-                        i -= (g.delay_f as usize) + 1;
+                    if g.count_f > delay_f {
+                        i -= (delay_f as usize) + 1;
                     }
                     let out_fl = g.a_fl[i];
 
                     i = g.count_g as usize;
-                    if g.count_g > g.delay_g {
-                        i -= (g.delay_g as usize) + 1;
+                    if g.count_g > delay_g {
+                        i -= (delay_g as usize) + 1;
                     }
                     let out_gl = g.a_gl[i];
                     i = g.count_h as usize;
-                    if g.count_h > g.delay_h {
-                        i -= (g.delay_h as usize) + 1;
+                    if g.count_h > delay_h {
+                        i -= (delay_h as usize) + 1;
                     }
                     let out_hl = g.a_hl[i];
                     i = g.count_e as usize;
-                    if g.count_e > g.delay_e {
-                        i -= (g.delay_e as usize) + 1;
+                    if g.count_e > delay_e {
+                        i -= (delay_e as usize) + 1;
                     }
                     let out_er = g.a_er[i];
                     i = g.count_f as usize;
-                    if g.count_f > g.delay_f {
-                        i -= (g.delay_f as usize) + 1;
+                    if g.count_f > delay_f {
+                        i -= (delay_f as usize) + 1;
                     }
                     let out_fr = g.a_fr[i];
                     i = g.count_g as usize;
-                    if g.count_g > g.delay_g {
-                        i -= (g.delay_g as usize) + 1;
+                    if g.count_g > delay_g {
+                        i -= (delay_g as usize) + 1;
                     }
                     let out_gr = g.a_gr[i];
                     i = g.count_h as usize;
-                    if g.count_h > g.delay_h {
-                        i -= (g.delay_h as usize) + 1;
+                    if g.count_h > delay_h {
+                        i -= (delay_h as usize) + 1;
                     }
                     let out_hr = g.a_hr[i];
                     // third block: final outputs
@@ -598,35 +541,41 @@ median::external! {
                     input_sample_r = (out_er + out_fr + out_gr + out_hr) / 8.0;
                     // take the final combined sum
 
-                    if cycle_end == 4 {
-                        g.last_ref_l[0] = g.last_ref_l[4]; //start from previous last
-                        g.last_ref_l[2] = (g.last_ref_l[0] + input_sample_l) / 2.0; //half
-                        g.last_ref_l[1] = (g.last_ref_l[0] + g.last_ref_l[2]) / 2.0; //one quarter
-                        g.last_ref_l[3] = (g.last_ref_l[2] + input_sample_l) / 2.0; //three quarters
-                        g.last_ref_l[4] = input_sample_l; //full
-                        g.last_ref_r[0] = g.last_ref_r[4]; //start from previous last
-                        g.last_ref_r[2] = (g.last_ref_r[0] + input_sample_r) / 2.0; //half
-                        g.last_ref_r[1] = (g.last_ref_r[0] + g.last_ref_r[2]) / 2.0; //one quarter
-                        g.last_ref_r[3] = (g.last_ref_r[2] + input_sample_r) / 2.0; //three quarters
-                        g.last_ref_r[4] = input_sample_r; //full
-                    }
-                    if cycle_end == 3 {
-                        g.last_ref_l[0] = g.last_ref_l[3]; //start from previous last
-                        g.last_ref_l[2] = (g.last_ref_l[0]+g.last_ref_l[0]+input_sample_l) / 3.0; //third
-                        g.last_ref_l[1] = (g.last_ref_l[0]+input_sample_l+input_sample_l) / 3.0; //two thirds
-                        g.last_ref_l[3] = input_sample_l; //full
-                        g.last_ref_r[0] = g.last_ref_r[3]; //start from previous last
-                        g.last_ref_r[2] = (g.last_ref_r[0]+g.last_ref_r[0]+input_sample_r) / 3.0; //third
-                        g.last_ref_r[1] = (g.last_ref_r[0]+input_sample_r+input_sample_r) / 3.0; //two thirds
-                        g.last_ref_r[3] = input_sample_r; //full
-                    }
-                    if cycle_end == 2 {
-                        g.last_ref_l[0] = g.last_ref_l[2]; //start from previous last
-                        g.last_ref_l[1] = (g.last_ref_l[0] + input_sample_l) / 2.0; //half
-                        g.last_ref_l[2] = input_sample_l; //full
-                        g.last_ref_r[0] = g.last_ref_r[2]; //start from previous last
-                        g.last_ref_r[1] = (g.last_ref_r[0] + input_sample_r) / 2.0; //half
-                        g.last_ref_r[2] = input_sample_r; //full
+                    match cycle_end {
+                        4 => {
+                            let comp = |v: &mut [f64], input_sample: f64| {
+                                v[0] = v[4];  // start from previous last
+                                v[2] = (v[0] + input_sample) / 2.0;  // half
+                                v[1] = (v[0] + v[2]) / 2.0;  // one quarter
+                                v[3] = (v[2] + input_sample) / 2.0;  // three quarters
+                                v[4] = input_sample;  // full
+                            };
+                            comp(&mut g.last_ref_l, input_sample_l);
+                            comp(&mut g.last_ref_r, input_sample_r);
+                        }
+
+                        3 => {
+                            let comp = |v: &mut [f64], input_sample: f64| {
+                                v[0] = v[3];  // start from previous last
+                                v[2] = (v[0] + v[0] + input_sample) / 3.0;  // third
+                                v[1] = (v[0] + input_sample + input_sample) / 3.0;  // two thirds
+                                v[3] = input_sample;  // full
+                            };
+                            comp(&mut g.last_ref_l, input_sample_l);
+                            comp(&mut g.last_ref_r, input_sample_r);
+                        }
+
+                        2 => {
+                            let comp = |v: &mut [f64], input_sample: f64| {
+                                v[0] = v[2];  // start from previous last
+                                v[1] = (v[0] + input_sample) / 2.0;  // half
+                                v[2] = input_sample;  // full
+                            };
+                            comp(&mut g.last_ref_l, input_sample_l);
+                            comp(&mut g.last_ref_r, input_sample_r);
+                        }
+
+                        _ => ()
                     }
                     g.cycle = 0; //reset
                 } else {
