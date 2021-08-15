@@ -258,6 +258,7 @@ median::external! {
                     g.count_m = 0;
                 }
 
+                // == begin: pre-delay + vibrato
                 // Compute interpol_m
                 let interpol_m_comp = |offset: f64, w: i64, del: i64, arr: [f64; 3111]| {
                     let mut w = w as usize;
@@ -287,58 +288,50 @@ median::external! {
                 let working_mr = g.count_m + offset_mr as i64;
                 input_sample_l = interpol_m_comp(offset_ml, working_ml, delay_m, g.a_ml);
                 input_sample_r = interpol_m_comp(offset_mr, working_mr, delay_m, g.a_mr);
-                // Pre-delay + vibrato
+                // == end: pre-delay + vibrato
 
-                let eps = 1.18e-37f64;
-                if g.iir_al.abs() < eps {
-                    g.iir_al = 0.0;
-                }
-                g.iir_al = g.iir_al * (1.0 - lowpass) + input_sample_l * lowpass;
-                input_sample_l = g.iir_al;
-
-                if g.iir_ar.abs() < eps {
-                    g.iir_ar = 0.0;
-                }
-                g.iir_ar = g.iir_ar * (1.0 - lowpass) + input_sample_r * lowpass;
-                input_sample_r = g.iir_ar;
-                // Initial filter
+                // == begin: initial filter
+                let filter = |iir: &mut f64, eps: f64, input_sample: f64| {
+                    if iir.abs() < eps {
+                        *iir = 0.0;
+                    }
+                    *iir = *iir * (1.0 - lowpass) + input_sample * lowpass;
+                    *iir
+                };
+                input_sample_l = filter(&mut g.iir_al, 1.18e-37f64, input_sample_l);
+                input_sample_r = filter(&mut g.iir_ar, 1.18e-37f64, input_sample_r);
+                // == end: initial filter
 
                 g.cycle += 1;
                 if g.cycle == cycle_end {  // hit the end point and do a reverb sample
-                    let mut i = g.count_i as usize;
-                    g.a_il[i] = input_sample_l + (g.feedback_ar * regen);
-                    i = g.count_j as usize;
-                    g.a_jl[i] = input_sample_l + (g.feedback_br * regen);
-                    i = g.count_k as usize;
-                    g.a_kl[i] = input_sample_l + (g.feedback_cr * regen);
-                    i = g.count_l as usize;
-                    g.a_ll[i] = input_sample_l + (g.feedback_dr * regen);
-                    i = g.count_i as usize;
-                    g.a_ir[i] = input_sample_r + (g.feedback_al * regen);
-                    i = g.count_j as usize;
-                    g.a_jr[i] = input_sample_r + (g.feedback_bl * regen);
-                    i = g.count_k as usize;
-                    g.a_kr[i] = input_sample_r + (g.feedback_cl * regen);
-                    i = g.count_l as usize;
-                    g.a_lr[i] = input_sample_r + (g.feedback_dl * regen);
+                    // == begin: feedback
+                    let fdbk = |index: i64, input: f64, fdbk: f64, v: &mut [f64]| {
+                        v[index as usize] = input + fdbk * regen;
+                    };
 
-                    g.count_i += 1;
-                    if g.count_i < 0 || g.count_i > delay_i {
-                        g.count_i = 0;
-                    }
-                    g.count_j += 1;
-                    if g.count_j < 0 || g.count_j > delay_j {
-                        g.count_j = 0;
-                    }
-                    g.count_k += 1;
-                    if g.count_k < 0 || g.count_k > delay_k {
-                        g.count_k = 0;
-                    }
-                    g.count_l += 1;
-                    if g.count_l < 0 || g.count_l > delay_l {
-                        g.count_l = 0;
-                    }
+                    fdbk(g.count_i, input_sample_l, g.feedback_ar, &mut g.a_il);
+                    fdbk(g.count_j, input_sample_l, g.feedback_br, &mut g.a_jl);
+                    fdbk(g.count_k, input_sample_l, g.feedback_cr, &mut g.a_kl);
+                    fdbk(g.count_l, input_sample_l, g.feedback_dr, &mut g.a_ll);
+                    fdbk(g.count_i, input_sample_l, g.feedback_al, &mut g.a_ir);
+                    fdbk(g.count_j, input_sample_r, g.feedback_bl, &mut g.a_jl);
+                    fdbk(g.count_k, input_sample_r, g.feedback_cl, &mut g.a_kr);
+                    fdbk(g.count_l, input_sample_r, g.feedback_dl, &mut g.a_lr);
+                    // == end: feedback
 
+                    // == begin: count wrapping
+                    let wrap_count = |count: &mut i64, delay: i64| {
+                        *count += 1;
+                        if *count < 0 || *count > delay {
+                            *count = 0;
+                        }
+                    };
+                    wrap_count(&mut g.count_i, delay_i);
+                    wrap_count(&mut g.count_j, delay_j);
+                    wrap_count(&mut g.count_k, delay_k);
+                    wrap_count(&mut g.count_l, delay_l);
+
+                    // == begin: apply delays
                     let mut i = g.count_i as usize;
                     if g.count_i > delay_i {
                         i -= (delay_i as usize) + 1;
@@ -395,22 +388,11 @@ median::external! {
                     let x = g.count_d as usize;
                     g.a_dl[x] = out_ll - (out_il + out_jl + out_kl);
                     g.a_dr[x] = out_lr - (out_ir + out_jr + out_kr);
-                    g.count_a += 1;
-                    if g.count_a < 0 || g.count_a > delay_a {
-                        g.count_a = 0;
-                    }
-                    g.count_b += 1;
-                    if g.count_b < 0 || g.count_b > delay_b {
-                        g.count_b = 0;
-                    }
-                    g.count_c += 1;
-                    if g.count_c < 0 || g.count_c > delay_c {
-                        g.count_c = 0;
-                    }
-                    g.count_d += 1;
-                    if g.count_d < 0 || g.count_d > delay_d {
-                        g.count_d = 0;
-                    }
+
+                    wrap_count(&mut g.count_a, delay_a);
+                    wrap_count(&mut g.count_b, delay_b);
+                    wrap_count(&mut g.count_c, delay_c);
+                    wrap_count(&mut g.count_d, delay_d);
 
                     let mut i = g.count_a as usize;
                     if g.count_a > delay_a {
@@ -467,22 +449,11 @@ median::external! {
                     let x = g.count_h as usize;
                     g.a_hl[x] = out_dl - (out_al + out_bl + out_cl);
                     g.a_hr[x] = out_dr - (out_ar + out_br + out_cr);
-                    g.count_e += 1;
-                    if g.count_e < 0 || g.count_e > delay_e {
-                        g.count_e = 0;
-                    }
-                    g.count_f += 1;
-                    if g.count_f < 0 || g.count_f > delay_f {
-                        g.count_f = 0;
-                    }
-                    g.count_g += 1;
-                    if g.count_g < 0 || g.count_g > delay_g {
-                        g.count_g = 0;
-                    }
-                    g.count_h += 1;
-                    if g.count_h < 0 || g.count_h > delay_h {
-                        g.count_h = 0;
-                    }
+
+                    wrap_count(&mut g.count_e, delay_e);
+                    wrap_count(&mut g.count_f, delay_f);
+                    wrap_count(&mut g.count_g, delay_g);
+                    wrap_count(&mut g.count_h, delay_h);
 
                     let mut i = g.count_e as usize;
                     if g.count_e > delay_e {
