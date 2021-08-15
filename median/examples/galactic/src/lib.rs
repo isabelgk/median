@@ -290,7 +290,6 @@ median::external! {
                 input_sample_r = interpol_m_comp(offset_mr, working_mr, delay_m, g.a_mr);
                 // == end: pre-delay + vibrato
 
-                // == begin: initial filter
                 let filter = |iir: &mut f64, eps: f64, input_sample: f64| {
                     if iir.abs() < eps {
                         *iir = 0.0;
@@ -300,11 +299,10 @@ median::external! {
                 };
                 input_sample_l = filter(&mut g.iir_al, 1.18e-37f64, input_sample_l);
                 input_sample_r = filter(&mut g.iir_ar, 1.18e-37f64, input_sample_r);
-                // == end: initial filter
+                // initial filter
 
                 g.cycle += 1;
                 if g.cycle == cycle_end {  // hit the end point and do a reverb sample
-                    // == begin: feedback
                     let fdbk = |index: usize, input: f64, fdbk: f64, v: &mut [f64]| {
                         v[index] = input + fdbk * regen;
                     };
@@ -317,9 +315,7 @@ median::external! {
                     fdbk(g.count_j, input_sample_r, g.feedback_bl, &mut g.a_jl);
                     fdbk(g.count_k, input_sample_r, g.feedback_cl, &mut g.a_kr);
                     fdbk(g.count_l, input_sample_r, g.feedback_dl, &mut g.a_lr);
-                    // == end: feedback
 
-                    // == begin: count wrapping
                     let wrap_count = |count: &mut usize, delay: usize| {
                         *count += 1;
                         if *count > delay {
