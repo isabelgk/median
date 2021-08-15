@@ -567,17 +567,8 @@ median::external! {
                 }
                 // end feedback
 
-                if g.iir_bl < eps {
-                    g.iir_bl = 0.0;
-                }
-                g.iir_bl = g.iir_bl * (1.0 - lowpass) + input_sample_l * lowpass;
-                input_sample_l = g.iir_bl;
-
-                if g.iir_br < eps {
-                    g.iir_br = 0.0;
-                }
-                g.iir_br = g.iir_br * (1.0 - lowpass) + input_sample_r * lowpass;
-                input_sample_r = g.iir_br;
+                input_sample_l = filter(&mut g.iir_al, 1.18e-37f64, input_sample_l);
+                input_sample_r = filter(&mut g.iir_ar, 1.18e-37f64, input_sample_r);
                 // end filter
 
                 // dry/wet
