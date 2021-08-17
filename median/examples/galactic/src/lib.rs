@@ -6,6 +6,8 @@ use median::{
     wrapper::{attr_get_tramp, attr_set_tramp, MSPObjWrapped, MSPObjWrapper},
 };
 
+use rand::Rng;
+
 struct GalacticInner {
     a_il: [f64; 6480],
     a_jl: [f64; 3660],
@@ -82,6 +84,7 @@ struct GalacticInner {
 
 impl Default for GalacticInner {
     fn default() -> GalacticInner {
+        let mut rng = rand::thread_rng();
         GalacticInner {
             a_il: [0f64; 6480],
             a_jl: [0f64; 3660],
@@ -139,8 +142,8 @@ impl Default for GalacticInner {
             count_m: 1,
             cycle: 0, //all these ints are shared across channels, not duplicated
             vib_m: 3f64,
-            fpd_l: 3856986592u32,
-            fpd_r: 81192u32,
+            fpd_l: rng.gen::<u32>(),
+            fpd_r: rng.gen::<u32>()
         }
     }
 }
