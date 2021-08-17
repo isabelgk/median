@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 median = { path = "../../" }
 parking_lot = "0.11.0"
 rand = "0.8.4"
+num-traits = "0.2.14"
 
 [profile.release]
 lto = true
