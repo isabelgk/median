@@ -576,20 +576,19 @@ median::external! {
                     input_sample_l = input_sample_l * wet + dry_sample_l * (1.0 - wet);
                     input_sample_r = input_sample_r * wet + dry_sample_r * (1.0 - wet);
                 }
-                
-                let dither = |input_sample: &mut f64, fpd: &mut u32| {
-                    let (_mantissa, expon, _sign) = Float::integer_decode(*input_sample);
+
+                let dither = |input_sample: f64, fpd: &mut u32| -> f64 {
+                    let (_mantissa, expon, _sign) = Float::integer_decode(input_sample);
                     *fpd ^= *fpd << 13;
                     *fpd ^= *fpd >> 17;
                     *fpd ^= *fpd << 5;
-                    *input_sample += (*fpd - u32::MAX) as f64 * 1.1e-44 * (expon + 62).pow(2) as f64;
+                    (*fpd).wrapping_sub(i32::MAX as u32) as f64 * 1.1e-44 * (expon + 62).pow(2) as f64
                 };
-                dither(&mut input_sample_l, &mut g.fpd_l);
-                dither(&mut input_sample_r, &mut g.fpd_r);
+
+                outs[0][counter] = dither(input_sample_l, &mut g.fpd_l);
+                outs[1][counter] = dither(input_sample_r, &mut g.fpd_r);
                 // 64 bit stereo floating point dither
 
-                outs[0][counter] = input_sample_l;
-                outs[1][counter] = input_sample_r;
                 counter += 1;
             }
         }
